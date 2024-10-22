@@ -32,6 +32,19 @@ download_uris = [
     "https://divvy-tripdata.s3.amazonaws.com/Divvy_Trips_2220_Q1.zip",
 ]
 
+
+def validate_path():
+    path = os.path.join(os.getcwd(), 'downloads')
+    path = os.path.normpath(path)
+    if not os.path.exists(path):
+        os.mkdir(path=path)
+        logger.info("created a downloads folder!")
+        iterate_uris(path)
+    else:
+        logger.info("such a path exists!")
+        iterate_uris(path)
+
+
 def iterate_uris(_path):
     for uri in download_uris:
         try:
@@ -62,15 +75,7 @@ def iterate_uris(_path):
             logger.exception(f"response wasn't successful! here's the status code: {response.status_code}")
 
 def main():
-    path = os.path.join(os.getcwd(), 'downloads')
-    path = os.path.normpath(path)
-    if not os.path.exists(path):
-        os.mkdir(path=path)
-        logger.info("created a downloads folder!")
-        iterate_uris(path)
-    else:
-        logger.info("such a path exists!")
-        iterate_uris(path)
+    validate_path()
 
 
 if __name__ == "__main__":
