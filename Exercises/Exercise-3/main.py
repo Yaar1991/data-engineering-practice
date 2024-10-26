@@ -27,13 +27,37 @@ key = "crawl-data/CC-MAIN-2022-05/wet.paths.gz"
 client = boto3.client('s3')
 
 
-# Made by Yaar
-def download_file_from_s3(_key: str = key, file_name:str = "file_name.gz") -> str:
-    filename = file_name
-    client.download_file(Bucket=bucket_name, Key=_key, Filename=filename)
-    with gzip.open(filename, 'rb') as f:
+# Made by ChatGPT
+def main():
+    # Step 1: Download the initial gzip file, read in memory, and extract the URI
+    file_content = download_file_from_s3()
+    first_uri = pull_uri(file_content.split('\n'))
+
+    # Step 2: Stream the second file from the extracted URI, printing line by line
+    if first_uri:
+        stream_file_from_uri(first_uri)
+
+
+# Made by ChatGPT
+def download_file_from_s3(_key: str = key) -> str:
+    obj = client.get_object(Key=key, Bucket=bucket_name)
+    compressed_file = obj['Body'].read()
+    with gzip.open(io.BytesIO(compressed_file), 'rb') as f:
         file_content = f.read()
     return file_content.decode("utf-8")
+
+
+def stream_file_from_uri(uri: str):
+    logger.info(f"Streaming file from S3 with URI: {uri}")
+    response = client.get_object(Bucket=bucket_name, Key=uri)
+    compressed_file = response['Body'].read()  # Read the compressed file into memory
+    with gzip.open(io.BytesIO(compressed_file), 'rb') as f:
+        for line in f:
+            try:
+                logger.info(line.decode('utf-8'))  # Decode each line after decompression
+            except UnicodeDecodeError as e:
+                logger.error(f"Unicode decode error: {e}. Skipping problematic line.")
+    logger.info("Finished streaming file from S3.")
 
 
 def download_or_stream(param: str, file_downloaded: Optional[str]) -> Optional[List[str]]:
@@ -59,12 +83,6 @@ def pull_uri(file_downloaded: list) -> Optional[str]:  # splits the string list,
 def log_file(param: list[str]):
     for line in param:
         logger.info(line)
-
-
-# Made by Yaar:
-def main():
-    file_dwd = pull_uri(download_or_stream("download", None))
-    log_file(download_or_stream("stream", file_dwd))
 
 
 if __name__ == "__main__":
